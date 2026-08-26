@@ -1,0 +1,6 @@
+{
+  "name": "NEKO KISSATEN (猫喫茶)",
+  "description": "Specialty Coffee Shop & Beans Roastery e-commerce web application featuring artisanal single-origin beans, hand-poured brews, and kissaten culture.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
