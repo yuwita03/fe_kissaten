@@ -3,9 +3,29 @@ import { Coffee, Plus, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { formatIDR } from '../utils/formatters';
 
-export default function ProductCard({ product }) {
+interface Product {
+  id: string | number;
+  name: string;
+  price: number;
+  image?: string | null;
+  notes?: string;
+  description?: string;
+  status?: string;
+  isFeatured?: boolean;
+  category?: string;
+  categoryName?: string;
+  categoryId?: number;
+}
+
+interface ProductCardProps {
+  product: Product;
+  key?: React.Key;
+}
+
+export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart, toggleCart } = useCart();
   const isSoldOut = product.status === 'SOLD OUT';
+  const categoryName = product.categoryName || product.category;
 
   const handleAdd = () => {
     if (isSoldOut) return;
@@ -21,7 +41,7 @@ export default function ProductCard({ product }) {
       {/* Image container */}
       <div className="relative aspect-4/3 w-full overflow-hidden bg-warm-sand/20">
         <img
-          src={product.image}
+          src={product.image || 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop'}
           alt={product.name}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -31,7 +51,7 @@ export default function ProductCard({ product }) {
         {/* Category Chip */}
         <div className="absolute top-3 left-3">
           <span className="px-2.5 py-1 rounded-full bg-cream-main/90 dark:bg-dark-roasted/90 backdrop-blur-md text-[11px] font-semibold text-coffee-brown dark:text-warm-sand shadow-sm border border-warm-sand/30 dark:border-dark-slate/60">
-            {product.category}
+            {categoryName}
           </span>
         </div>
 
@@ -58,15 +78,19 @@ export default function ProductCard({ product }) {
             {product.name}
           </h3>
 
-          <p className="text-xs text-coffee-brown/70 dark:text-warm-sand/70 line-clamp-2 leading-relaxed">
-            {product.description}
-          </p>
+          {product.description && (
+            <p className="text-xs text-coffee-brown/70 dark:text-warm-sand/70 line-clamp-2 leading-relaxed">
+              {product.description}
+            </p>
+          )}
 
           {/* Tasting notes chip */}
-          <div className="pt-1 flex items-center gap-1.5 text-xs text-sage-green dark:text-sage-green font-medium">
-            <Coffee className="w-3.5 h-3.5 shrink-0" />
-            <span className="line-clamp-1">{product.notes}</span>
-          </div>
+          {product.notes && (
+            <div className="pt-1 flex items-center gap-1.5 text-xs text-sage-green dark:text-sage-green font-medium">
+              <Coffee className="w-3.5 h-3.5 shrink-0" />
+              <span className="line-clamp-1">{product.notes}</span>
+            </div>
+          )}
         </div>
 
         {/* Price & Action */}

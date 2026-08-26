@@ -1,9 +1,36 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const CartContext = createContext();
+interface CartItem {
+  id: string | number;
+  name: string;
+  price: number;
+  image: string;
+  notes?: string;
+  description?: string;
+  status?: string;
+  isFeatured?: boolean;
+  category?: string;
+  categoryId?: number;
+  quantity: number;
+}
 
-export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState(() => {
+interface CartContextType {
+  cartItems: CartItem[];
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
+  addToCart: (product: CartItem, quantity?: number) => void;
+  removeFromCart: (productId: string | number) => void;
+  updateQuantity: (productId: string | number, delta: number) => void;
+  clearCart: () => void;
+  toggleCart: () => void;
+  getTotalPrice: () => number;
+  getTotalItems: () => number;
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export const CartProvider = ({ children }: { children: React.ReactNode }) => {
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('neko_cart');
       return saved ? JSON.parse(saved) : [];
@@ -23,7 +50,7 @@ export const CartProvider = ({ children }) => {
     }
   }, [cartItems]);
 
-  const addToCart = (product, quantity = 1) => {
+  const addToCart = (product: CartItem, quantity = 1) => {
     if (!product || product.status === 'SOLD OUT') return;
 
     setCartItems(prevItems => {
@@ -41,11 +68,11 @@ export const CartProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = (productId: string | number) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
   };
 
-  const updateQuantity = (productId, delta) => {
+  const updateQuantity = (productId: string | number, delta: number) => {
     setCartItems(prevItems => {
       return prevItems
         .map(item => {

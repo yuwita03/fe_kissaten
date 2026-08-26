@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, CheckCircle2, ShieldCheck, QrCode } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, CheckCircle2, ShieldCheck, QrCode, Loader2, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductContext';
+import useAuthStore from '../store/authStore';
 import { formatIDR } from '../utils/formatters';
 
 export default function CartDrawer() {
@@ -18,6 +19,7 @@ export default function CartDrawer() {
   } = useCart();
 
   const { createOrder } = useProducts();
+  const { user, isAuthenticated } = useAuthStore();
 
   // Checkout modal states
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -27,6 +29,8 @@ export default function CartDrawer() {
   const [customerAddress, setCustomerAddress] = useState('Table 07 (Dine-in / Kissaten Bar)');
   const [paymentMethod, setPaymentMethod] = useState('QRIS / GoPay');
   const [lastOrderDetails, setLastOrderDetails] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
 
   const subtotal = getTotalPrice();
   const taxAndService = Math.round(subtotal * 0.1);
@@ -35,45 +39,55 @@ export default function CartDrawer() {
   const handleStartCheckout = () => {
     setIsCheckingOut(true);
     setPaymentStep('FORM');
+    setCheckoutError('');
   };
 
-  const handleProcessPayment = (e) => {
+  const handleProcessPayment = async (e) => {
     e.preventDefault();
+    setCheckoutError('');
+    
     if (!customerName) {
-      alert('Please enter your name');
+      setCheckoutError('Please enter your name');
       return;
     }
 
+    setIsProcessing(true);
     setPaymentStep('SNAP_PROCESSING');
 
-    // Simulate Midtrans Snap payment gateway response
-    setTimeout(() => {
+    try {
       const orderData = {
         customerName: customerName || 'Valued Guest',
-        customerPhone: customerPhone || '+62 812-0000-0000',
-        customerAddress: customerAddress,
+        userId: isAuthenticated ? user?.id : undefined,
         items: cartItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity
-        })),
-        totalPrice: finalTotal,
-        paymentMethod: paymentMethod,
-        snapToken: `SNAP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+          productId: item.id,
+          qty: item.quantity
+        }))
       };
 
-      const savedOrder = createOrder(orderData);
-      setLastOrderDetails(savedOrder);
+      const savedOrder = await createOrder(orderData);
+      setLastOrderDetails({
+        id: savedOrder.id,
+        customerName: savedOrder.customerName || 'Guest',
+        customerAddress: customerAddress,
+        paymentMethod: paymentMethod,
+        totalPrice: savedOrder.totalAmount,
+        items: savedOrder.items
+      });
       clearCart();
       setPaymentStep('SUCCESS');
-    }, 1500);
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : 'Failed to process order');
+      setPaymentStep('FORM');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleCloseAll = () => {
     setIsCheckingOut(false);
     setPaymentStep('FORM');
     setIsCartOpen(false);
+    setCheckoutError('');
   };
 
   if (!isCartOpen) return null;
@@ -213,7 +227,7 @@ export default function CartDrawer() {
                   <span className="font-semibold text-coffee-brown dark:text-cream-main">{formatIDR(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Tax &amp; Service (10%)</span>
+                  <span>Tax & Service (10%)</span>
                   <span>{formatIDR(taxAndService)}</span>
                 </div>
                 <div className="pt-2 border-t border-warm-sand/30 dark:border-dark-slate/60 flex justify-between text-sm font-bold text-coffee-brown dark:text-cream-main">
@@ -265,6 +279,13 @@ export default function CartDrawer() {
                   <span>Order Total ({cartItems.length} items)</span>
                   <span className="font-bold text-amber-gold text-base">{formatIDR(finalTotal)}</span>
                 </div>
+
+                {checkoutError && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{checkoutError}</span>
+                  </div>
+                )}
 
                 <div className="space-y-3 text-xs sm:text-sm">
                   <div>
@@ -328,9 +349,11 @@ export default function CartDrawer() {
                   <button
                     type="submit"
                     id="submit-payment-btn"
-                    className="w-2/3 py-3 rounded-xl bg-amber-gold text-dark-roasted font-bold text-xs sm:text-sm tracking-wider uppercase hover:bg-amber-gold/90 shadow-md cursor-pointer"
+                    disabled={isProcessing}
+                    className="w-2/3 py-3 rounded-xl bg-amber-gold text-dark-roasted font-bold text-xs sm:text-sm tracking-wider uppercase hover:bg-amber-gold/90 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Pay {formatIDR(finalTotal)}
+                    {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <span>Pay {formatIDR(finalTotal)}</span>
                   </button>
                 </div>
               </form>
@@ -392,7 +415,7 @@ export default function CartDrawer() {
                     id="finish-order-btn"
                     className="w-full py-3 rounded-xl bg-amber-gold text-dark-roasted font-bold text-xs sm:text-sm tracking-wider uppercase hover:bg-amber-gold/90 transition shadow-md cursor-pointer"
                   >
-                    Done &amp; Enjoy Coffee
+                    Done & Enjoy Coffee
                   </button>
                 </div>
               </div>

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProductProvider } from './context/ProductContext';
 import { CartProvider } from './context/CartContext';
+import useAuthStore from './store/authStore';
 import Navbar from './components/Navbar';
 import CartDrawer from './components/CartDrawer';
 import Footer from './components/Footer';
@@ -13,8 +14,8 @@ import Menu from './pages/Menu';
 import Story from './pages/Story';
 import Contact from './pages/Contact';
 import Admin from './pages/Admin';
+import Login from './pages/Login';
 
-// Root Layout Component
 function RootLayout() {
   return (
     <div className="flex flex-col min-h-screen font-sans selection:bg-amber-gold/30 selection:text-coffee-brown">
@@ -29,7 +30,21 @@ function RootLayout() {
   );
 }
 
+function AuthLayout() {
+  return (
+    <div className="min-h-screen">
+      <Outlet />
+    </div>
+  );
+}
+
 export default function App() {
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <ThemeProvider>
       <ProductProvider>
@@ -43,6 +58,9 @@ export default function App() {
                 <Route path="contact" element={<Contact />} />
                 <Route path="admin" element={<Admin />} />
                 <Route path="*" element={<Home />} />
+              </Route>
+              <Route element={<AuthLayout />}>
+                <Route path="login" element={<Login />} />
               </Route>
             </Routes>
           </BrowserRouter>

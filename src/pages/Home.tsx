@@ -1,19 +1,33 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ShieldCheck, Flame, Droplets, Sparkles, Coffee, Heart, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Flame, Droplets, Sparkles, Coffee, Heart, CheckCircle2, Loader2 } from 'lucide-react';
 import VideoHero from '../components/VideoHero';
 import ProductCard from '../components/ProductCard';
 import { useProducts } from '../context/ProductContext';
 
 export default function Home() {
-  const { products } = useProducts();
+  const { products, isLoading } = useProducts();
   
   // Selected drops: featured products first, capped at 3
-  const featuredProducts = products.filter(p => p.isFeatured).slice(0, 3);
+  const featuredProducts = useMemo(() => products.filter(p => p.isFeatured).slice(0, 3), [products]);
   // fallback if less than 3 featured products
-  const displayDrops = featuredProducts.length >= 3 
-    ? featuredProducts 
-    : [...featuredProducts, ...products.filter(p => !p.isFeatured)].slice(0, 3);
+  const displayDrops = useMemo(() => 
+    featuredProducts.length >= 3 
+      ? featuredProducts 
+      : [...featuredProducts, ...products.filter(p => !p.isFeatured)].slice(0, 3),
+    [featuredProducts, products]
+  );
+
+  if (isLoading && products.length === 0) {
+    return (
+      <div id="home-page" className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 mx-auto text-amber-gold animate-spin mb-4" />
+          <p className="text-coffee-brown/70 dark:text-warm-sand/70">Loading Kissaten...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="home-page" className="min-h-screen">
@@ -30,7 +44,7 @@ export default function Home() {
           {/* Column 1: Philosophy & Badges */}
           <div className="lg:col-span-7 space-y-6">
             <h2 className="text-2xl sm:text-4xl font-extrabold text-coffee-brown dark:text-cream-main font-poppins leading-snug">
-              A Quiet Sanctuary for Slow Drip &amp; Roastery Excellence
+              A Quiet Sanctuary for Slow Drip & Roastery Excellence
             </h2>
 
             <p className="text-sm sm:text-base text-coffee-brown/80 dark:text-warm-sand/80 leading-relaxed">
@@ -59,7 +73,7 @@ export default function Home() {
                   Artisan Hand-Pour
                 </h4>
                 <p className="text-[11px] text-coffee-brown/70 dark:text-warm-sand/70">
-                  Precision Nel drip &amp; Japanese flash brewing.
+                  Precision Nel drip & Japanese flash brewing.
                 </p>
               </div>
 
@@ -92,7 +106,7 @@ export default function Home() {
                   <span>The Counter Experience</span>
                 </div>
                 <h3 className="text-xl font-bold font-poppins">
-                  Warm Cedarwood &amp; Vintage Lo-Fi
+                  Warm Cedarwood & Vintage Lo-Fi
                 </h3>
                 <p className="text-xs text-warm-sand/80 mt-1">
                   Pull up a stool, listen to warm analog vinyl, and watch the slow drip kettle bloom.
@@ -109,7 +123,7 @@ export default function Home() {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-sage-green mb-2">
-              <span>FEATURED ROASTS &amp; BREWS</span>
+              <span>FEATURED ROASTS & BREWS</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-coffee-brown dark:text-cream-main font-poppins">
               Selected Kissaten Drops
@@ -131,7 +145,7 @@ export default function Home() {
 
         {/* 3 Selected Product Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-          {displayDrops.map((product) => (
+          {displayDrops.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
