@@ -1,6 +1,6 @@
 import React from 'react';
 import { Coffee, Plus, Check } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { useCartStore } from '../store/cartStore';
 import { formatIDR } from '../utils/formatters';
 
 interface Product {
@@ -11,7 +11,6 @@ interface Product {
   notes?: string;
   description?: string;
   status?: string;
-  isFeatured?: boolean;
   category?: string;
   categoryName?: string;
   categoryId?: number;
@@ -23,7 +22,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addToCart, toggleCart } = useCart();
+  const { addToCart, toggleCart } = useCartStore();
   const isSoldOut = product.status === 'SOLD OUT';
   const categoryName = product.categoryName || product.category;
 
@@ -60,12 +59,6 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="absolute top-3 right-3">
             <span className="px-2.5 py-1 rounded-full bg-red-600/90 text-white text-[11px] font-bold tracking-wider uppercase shadow-md">
               SOLD OUT
-            </span>
-          </div>
-        ) : product.isFeatured ? (
-          <div className="absolute top-3 right-3">
-            <span className="px-2.5 py-1 rounded-full bg-amber-gold/90 text-dark-roasted text-[11px] font-bold tracking-wide shadow-md">
-              FEATURED
             </span>
           </div>
         ) : null}

@@ -22,7 +22,6 @@ export interface CreateProductRequest {
   image?: string;
   categoryId: number;
   status?: 'AVAILABLE' | 'SOLD OUT';
-  isFeatured?: boolean;
 }
 
 export interface UpdateProductRequest {
@@ -31,11 +30,12 @@ export interface UpdateProductRequest {
   image?: string;
   categoryId?: number;
   status?: 'AVAILABLE' | 'SOLD OUT';
-  isFeatured?: boolean;
 }
+
 
 export interface ProductQueryParams {
   categoryId?: number;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -64,4 +64,6 @@ export const productService = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`/products/${id}`);
   },
+
+
 };

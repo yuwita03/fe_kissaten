@@ -15,7 +15,6 @@ export default function Contact() {
     e.preventDefault();
     setSubmitted(true);
     setTimeout(() => {
-      // Keep submitted feedback
     }, 500);
   };
 

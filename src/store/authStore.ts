@@ -1,4 +1,3 @@
-// src/store/authStore.ts
 import { create } from 'zustand';
 import { userService, UserResponse } from '../service/user.service';
 
@@ -6,17 +5,20 @@ interface AuthState {
   user: UserResponse | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error: string | null;
   initializeAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: (data: { name?: string; email?: string; password?: string }) => Promise<void>;
+  clearError: () => void;
 }
 
 const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
+  error: null,
 
   initializeAuth: async () => {
     const token = localStorage.getItem('accessToken');
@@ -40,17 +42,35 @@ const useAuthStore = create<AuthState>((set) => ({
   },
 
   login: async (email, password) => {
-    const response = await userService.login({ email, password });
-    localStorage.setItem('accessToken', response.accessToken);
-    localStorage.setItem('user', JSON.stringify(response.user));
-    set({ user: response.user, isAuthenticated: true });
+    set({ isLoading: true, error: null });
+    try {
+      const response = await userService.login({ email, password });
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      set({ user: response.user, isAuthenticated: true, isLoading: false });
+    } catch (err: any) {
+      set({
+        error: err?.response?.data?.message || 'Email atau password salah',
+        isLoading: false,
+      });
+      throw err;
+    }
   },
 
   register: async (name, email, password) => {
-    const response = await userService.register({ name, email, password });
-    localStorage.setItem('accessToken', response.accessToken);
-    localStorage.setItem('user', JSON.stringify(response.user));
-    set({ user: response.user, isAuthenticated: true });
+    set({ isLoading: true, error: null });
+    try {
+      const response = await userService.register({ name, email, password });
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      set({ user: response.user, isAuthenticated: true, isLoading: false });
+    } catch (err: any) {
+      set({
+        error: err?.response?.data?.message || 'Registrasi gagal',
+        isLoading: false,
+      });
+      throw err;
+    }
   },
 
   logout: () => {
@@ -60,10 +80,21 @@ const useAuthStore = create<AuthState>((set) => ({
   },
 
   updateProfile: async (data) => {
-    const updatedUser = await userService.updateProfile(data);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    set({ user: updatedUser });
+    set({ isLoading: true, error: null });
+    try {
+      const updatedUser = await userService.updateProfile(data);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      set({ user: updatedUser, isLoading: false });
+    } catch (err: any) {
+      set({
+        error: err?.response?.data?.message || 'Gagal update profil',
+        isLoading: false,
+      });
+      throw err;
+    }
   },
+
+  clearError: () => set({ error: null }),
 }));
 
 export default useAuthStore;

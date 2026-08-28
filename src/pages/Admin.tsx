@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit, RefreshCw, ShoppingBag, Coffee, Shield, AlertCircle, XCircle, Loader2 } from 'lucide-react';
-import { useProducts } from '../context/ProductContext';
+import { useProductStore } from '../store/productStore';
+import { useCategoryStore } from '../store/categoryStore';
+import { useOrderStore } from '../store/orderStore';
 import useAuthStore from '../store/authStore';
 import { formatIDR, formatDate } from '../utils/formatters';
 import type { ProductResponse } from '../service/product.service';
@@ -8,22 +10,49 @@ import type { ProductResponse } from '../service/product.service';
 export default function Admin() {
   const {
     products,
-    categories,
-    orders,
-    isLoading,
-    error,
+    isLoading: isProductLoading,
+    error: productError,
+    total: productTotal,
+    page: productPage,
+    limit: productLimit,
     fetchProducts,
-    fetchCategories,
-    fetchOrders,
     addProduct,
     updateProduct,
     deleteProduct,
-    clearError
-  } = useProducts();
+    setPage: setProductPage,
+    setLimit: setProductLimit,
+    clearError: clearProductError
+  } = useProductStore();
+
+  const {
+    categories,
+    isLoading: isCategoryLoading,
+    error: categoryError,
+    fetchCategories,
+    clearError: clearCategoryError
+  } = useCategoryStore();
+
+  const {
+    orders,
+    total: orderTotal,
+    page: orderPage,
+    limit: orderLimit,
+    isLoading: isOrderLoading,
+    error: orderError,
+    setPage: setOrderPage,
+    setLimit: setOrderLimit,
+    fetchOrders,
+    clearError: clearOrderError
+  } = useOrderStore();
+
   const { user, isAuthenticated } = useAuthStore();
+
+  const isLoading = isProductLoading || isCategoryLoading || isOrderLoading;
+  const error = productError || categoryError || orderError;
 
   const [activeTab, setActiveTab] = useState('products');
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     categoryId: '',
@@ -32,14 +61,37 @@ export default function Admin() {
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
+  // reset ke page 1 tiap kali search berubah
+  useEffect(() => {
+    setProductPage(1);
+  }, [searchQuery]);
+
+  // fetch products, di-debounce 400ms biar gak spam request tiap ketikan
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'ADMIN') return;
+
+    const delay = setTimeout(() => {
+      fetchProducts({ page: productPage, limit: productLimit, search: searchQuery || undefined });
+    }, 400);
+
+    return () => clearTimeout(delay);
+  }, [isAuthenticated, user, productPage, productLimit, searchQuery]);
+
+  // categories cukup sekali tiap admin login, buat isi dropdown form product
   useEffect(() => {
     if (isAuthenticated && user?.role === 'ADMIN') {
-      fetchProducts();
       fetchCategories();
-      fetchOrders();
     }
-  }, [isAuthenticated, user, fetchProducts, fetchCategories, fetchOrders]);
+  }, [isAuthenticated, user]);
+
+  // orders punya effect sendiri, re-fetch tiap page/limit berubah
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'ADMIN') {
+      fetchOrders(orderPage, orderLimit);
+    }
+  }, [isAuthenticated, user, orderPage, orderLimit]);
 
   useEffect(() => {
     if (error) {
@@ -47,44 +99,50 @@ export default function Admin() {
     }
   }, [error]);
 
-const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-  const { name, value } = e.target;
-  setFormData((prev) => ({ ...prev, [name]: value }));
-  if (formError) setFormError('');
-};
+  const clearAllErrors = () => {
+    clearProductError();
+    clearCategoryError();
+    clearOrderError();
+  };
 
-const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setFormError('');
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (formError) setFormError('');
+  };
 
-  if (!formData.name || !formData.price || !formData.categoryId) {
-    setFormError('Please provide Product Name, Price, and Category');
-    return;
-  }
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setFormError('');
 
-  setIsSubmitting(true);
-  try {
-    const payload = {
-      name: formData.name,
-      categoryId: Number(formData.categoryId),
-      price: Number(formData.price),
-      image: formData.image.trim() || 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop'
-    };
-
-    if (editingProductId) {
-      await updateProduct(editingProductId, payload);
-      setEditingProductId(null);
-    } else {
-      await addProduct(payload);
+    if (!formData.name || !formData.price || !formData.categoryId) {
+      setFormError('Please provide Product Name, Price, and Category');
+      return;
     }
 
-    setFormData({ name: '', categoryId: '', price: '', image: '' });
-  } catch (err) {
-    setFormError(err instanceof Error ? err.message : 'Failed to save product');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: formData.name,
+        categoryId: Number(formData.categoryId),
+        price: Number(formData.price),
+        image: formData.image.trim() || 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop'
+      };
+
+      if (editingProductId) {
+        await updateProduct(editingProductId, payload);
+        setEditingProductId(null);
+      } else {
+        await addProduct(payload);
+      }
+
+      setFormData({ name: '', categoryId: '', price: '', image: '' });
+    } catch (err) {
+      // pesan error udah otomatis kesimpen di productStore.error lewat useEffect di atas
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleEditClick = (product: ProductResponse) => {
     setEditingProductId(product.id);
@@ -106,15 +164,18 @@ const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setFormError('');
   };
 
-const handleDeleteProduct = async (productId: number, productName: string) => {
-  if (window.confirm(`Are you sure you want to delete ${productName}?`)) {
-    try {
-      await deleteProduct(productId);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to delete product');
+  const handleDeleteProduct = async (productId: number, productName: string) => {
+    if (window.confirm(`Are you sure you want to delete ${productName}?`)) {
+      try {
+        await deleteProduct(productId);
+      } catch (err) {
+        // pesan error udah otomatis kesimpen di productStore.error lewat useEffect di atas
+      }
     }
-  }
-};
+  };
+  const toggleOrderDetail = (id: number) => {
+    setExpandedOrderId((prev) => (prev === id ? null : id));
+  };
 
   if (!isAuthenticated || user?.role !== 'ADMIN') {
     return (
@@ -316,21 +377,42 @@ const handleDeleteProduct = async (productId: number, productName: string) => {
                   </h3>
                 </div>
 
-                <button
-                  onClick={() => { fetchProducts(); fetchCategories(); }}
-                  disabled={isLoading}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-warm-sand/40 text-xs font-semibold text-coffee-brown/80 dark:text-warm-sand/80 hover:bg-warm-sand/20 dark:hover:bg-dark-slate/50 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
-                >
-                  {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Refresh Data</span>
-                </button>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <input
+                    type="text"
+                    placeholder="Search product..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="px-3.5 py-1.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/40 text-xs text-coffee-brown dark:text-cream-main focus:outline-none focus:border-amber-gold placeholder:text-coffee-brown/40 w-40 sm:w-48"
+                  />
+
+                  <select
+                    value={productLimit}
+                    onChange={(e) => setProductLimit(Number(e.target.value))}
+                    className="px-3 py-1.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/40 text-xs font-semibold text-coffee-brown dark:text-cream-main cursor-pointer"
+                  >
+                    <option value={10}>10 / page</option>
+                    <option value={20}>20 / page</option>
+                    <option value={30}>30 / page</option>
+                  </select>
+
+                  <button
+                    onClick={() => { fetchProducts({ page: productPage, limit: orderLimit, search: searchQuery || undefined }); fetchCategories(); }}
+                    disabled={isLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-warm-sand/40 text-xs font-semibold text-coffee-brown/80 dark:text-warm-sand/80 hover:bg-warm-sand/20 dark:hover:bg-dark-slate/50 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+                  >
+                    {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Refresh Data</span>
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-warm-sand/20 dark:bg-dark-slate/60 text-coffee-brown/80 dark:text-warm-sand/80 uppercase font-semibold">
                     <tr>
+                      <th className="py-3.5 px-4">ID</th>
                       <th className="py-3.5 px-4">Item</th>
                       <th className="py-3.5 px-4">Category</th>
                       <th className="py-3.5 px-4">Price</th>
@@ -340,6 +422,9 @@ const handleDeleteProduct = async (productId: number, productName: string) => {
                   <tbody className="divide-y divide-warm-sand/20 dark:divide-dark-slate/60">
                     {products.map((p) => (
                       <tr key={p.id} className="hover:bg-warm-sand/10 dark:hover:bg-dark-slate/30 transition">
+                        <td className="py-3.5 px-4 font-mono text-coffee-brown/60 dark:text-warm-sand/60">
+                          {p.id}
+                        </td>
                         <td className="py-3.5 px-4 flex items-center gap-3">
                           <img
                             src={p.image || 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop'}
@@ -347,10 +432,7 @@ const handleDeleteProduct = async (productId: number, productName: string) => {
                             referrerPolicy="no-referrer"
                             className="w-10 h-10 rounded-lg object-cover border border-warm-sand/30 shrink-0"
                           />
-                          <div>
-                            <p className="font-bold text-coffee-brown dark:text-cream-main line-clamp-1">{p.name}</p>
-                            <p className="text-[10px] text-coffee-brown/50 dark:text-warm-sand/50 font-mono">{p.id}</p>
-                          </div>
+                          <p className="font-bold text-coffee-brown dark:text-cream-main line-clamp-1">{p.name}</p>
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap text-coffee-brown/80 dark:text-warm-sand/80">
                           {p.categoryName}
@@ -381,6 +463,28 @@ const handleDeleteProduct = async (productId: number, productName: string) => {
                   </tbody>
                 </table>
               </div>
+
+              {Math.ceil(productTotal / productLimit) > 1 && (
+                <div className="flex items-center justify-center gap-4 py-4 border-t border-warm-sand/20 dark:border-dark-slate/60">
+                  <button
+                    onClick={() => setProductPage(productPage - 1)}
+                    disabled={productPage <= 1}
+                    className="px-4 py-2 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 text-xs font-semibold text-coffee-brown dark:text-cream-main disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-xs text-coffee-brown/70 dark:text-warm-sand/70">
+                    Page {productPage} of {Math.ceil(productTotal / productLimit)}
+                  </span>
+                  <button
+                    onClick={() => setProductPage(productPage + 1)}
+                    disabled={productPage >= Math.ceil(productTotal / productLimit)}
+                    className="px-4 py-2 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 text-xs font-semibold text-coffee-brown dark:text-cream-main disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
@@ -395,24 +499,37 @@ const handleDeleteProduct = async (productId: number, productName: string) => {
                   Transaction & Order History Logs ({orders.length})
                 </h3>
               </div>
-              <button
-                onClick={() => fetchOrders()}
-                disabled={isLoading}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-warm-sand/40 text-xs font-semibold text-coffee-brown/80 dark:text-warm-sand/80 hover:bg-warm-sand/20 dark:hover:bg-dark-slate/50 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
-              >
-                {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Refresh</span>
-              </button>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <select
+                  value={orderLimit}
+                  onChange={(e) => setOrderLimit(Number(e.target.value))}
+                  className="px-3 py-1.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/40 text-xs font-semibold text-coffee-brown dark:text-cream-main cursor-pointer"
+                >
+                  <option value={10}>10 / page</option>
+                  <option value={20}>20 / page</option>
+                  <option value={30}>30 / page</option>
+                </select>
+
+                <button
+                  onClick={() => fetchOrders(orderPage, orderLimit)}
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-warm-sand/40 text-xs font-semibold text-coffee-brown/80 dark:text-warm-sand/80 hover:bg-warm-sand/20 dark:hover:bg-dark-slate/50 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+                >
+                  {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-warm-sand/20 dark:bg-dark-slate/60 text-coffee-brown/80 dark:text-warm-sand/80 uppercase font-semibold">
                   <tr>
+                    <th className="py-3.5 px-4 w-8"></th>
                     <th className="py-3.5 px-4">Order ID</th>
                     <th className="py-3.5 px-4">Customer</th>
-                    <th className="py-3.5 px-4">Ordered Items</th>
                     <th className="py-3.5 px-4">Total Amount</th>
                     <th className="py-3.5 px-4">Timestamp</th>
                     <th className="py-3.5 px-4 text-center">Status</th>
@@ -420,38 +537,73 @@ const handleDeleteProduct = async (productId: number, productName: string) => {
                 </thead>
                 <tbody className="divide-y divide-warm-sand/20 dark:divide-dark-slate/60">
                   {orders.map((ord) => (
-                    <tr key={ord.id} className="hover:bg-warm-sand/10 dark:hover:bg-dark-slate/30 transition">
-                      <td className="py-3.5 px-4 font-mono font-bold text-amber-gold whitespace-nowrap">
-                        {ord.id}
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-coffee-brown dark:text-cream-main">
-                        {ord.customerName || 'Guest'}
-                      </td>
-                      <td className="py-3.5 px-4 max-w-xs">
-                        <ul className="list-disc list-inside space-y-0.5 text-coffee-brown/80 dark:text-warm-sand/80 text-[11px]">
-                          {ord.items && ord.items.map((it, idx) => (
-                            <li key={idx} className="truncate">
-                              {it.qty}x {it.productName}
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap font-bold text-coffee-brown dark:text-cream-main">
-                        {formatIDR(ord.totalAmount)}
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-coffee-brown/60 dark:text-warm-sand/60">
-                        {formatDate(ord.createdAt)}
-                      </td>
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-full bg-sage-green/20 text-coffee-brown dark:text-sage-green font-bold text-[10px]">
-                          {ord.paymentStatus || 'PAID'}
-                        </span>
-                      </td>
-                    </tr>
+                    <React.Fragment key={ord.id}>
+                      <tr
+                        onClick={() => toggleOrderDetail(ord.id)}
+                        className="hover:bg-warm-sand/10 dark:hover:bg-dark-slate/30 transition cursor-pointer"
+                      >
+                        <td className="py-3.5 px-4 text-coffee-brown/60 dark:text-warm-sand/60">
+                          {expandedOrderId === ord.id ? '▾' : '▸'}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-amber-gold whitespace-nowrap">
+                          {ord.id}
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-coffee-brown dark:text-cream-main">
+                          {ord.customerName || 'Guest'}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap font-bold text-coffee-brown dark:text-cream-main">
+                          {formatIDR(ord.totalAmount)}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap text-[11px] text-coffee-brown/60 dark:text-warm-sand/60">
+                          {formatDate(ord.createdAt)}
+                        </td>
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <span className="px-2.5 py-1 rounded-full bg-sage-green/20 text-coffee-brown dark:text-sage-green font-bold text-[10px]">
+                            {ord.paymentStatus || 'PAID'}
+                          </span>
+                        </td>
+                      </tr>
+
+                      {expandedOrderId === ord.id && (
+                        <tr className="bg-warm-sand/5 dark:bg-dark-slate/20">
+                          <td colSpan={6} className="py-3 px-4">
+                            <ul className="list-disc list-inside space-y-0.5 text-coffee-brown/80 dark:text-warm-sand/80 text-[11px]">
+                              {ord.items && ord.items.map((it, idx) => (
+                                <li key={idx}>
+                                  {it.qty}x {it.productName}
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
             </div>
+
+            {Math.ceil(orderTotal / orderLimit) > 1 && (
+              <div className="flex items-center justify-center gap-4 py-4 border-t border-warm-sand/20 dark:border-dark-slate/60">
+                <button
+                  onClick={() => setOrderPage(orderPage - 1)}
+                  disabled={orderPage <= 1}
+                  className="px-4 py-2 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 text-xs font-semibold text-coffee-brown dark:text-cream-main disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-coffee-brown/70 dark:text-warm-sand/70">
+                  Page {orderPage} of {Math.ceil(orderTotal / orderLimit)}
+                </span>
+                <button
+                  onClick={() => setOrderPage(orderPage + 1)}
+                  disabled={orderPage >= Math.ceil(orderTotal / orderLimit)}
+                  className="px-4 py-2 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 text-xs font-semibold text-coffee-brown dark:text-cream-main disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
 

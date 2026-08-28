@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { Coffee, Cat, ShoppingBag, Sun, Moon, Menu as MenuIcon, X, User, LogIn, LogOut, Settings, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useCart } from '../context/CartContext';
+import { useCartStore } from '../store/cartStore';
 import useAuthStore from '../store/authStore';
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
-  const { toggleCart, getTotalItems } = useCart();
+  const { toggleCart, getTotalItems } = useCartStore();
   const { user, isAuthenticated, logout, isLoading: authLoading } = useAuthStore();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,6 +18,7 @@ export default function Navbar() {
     { name: 'Home', path: '/' },
     { name: 'Menu', path: '/menu' },
     { name: 'Story', path: '/story' },
+    { name: 'Order History', path: '/history' },
     { name: 'Contact', path: '/contact' }
   ];
 

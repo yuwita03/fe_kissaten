@@ -48,4 +48,9 @@ export const orderService = {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
+
+  getMyOrders: async (page = 1, limit = 10): Promise<OrderListResponse> => {
+    const response = await api.get('/orders/my', { params: { page, limit } });
+    return response.data;
+  },
 };

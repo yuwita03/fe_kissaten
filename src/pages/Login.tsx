@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Coffee, Eye, EyeOff, Loader2, AlertCircle, User, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Coffee, Eye, EyeOff, Loader2, AlertCircle, User, Mail, Lock, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export default function Login() {
@@ -16,9 +16,31 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (error) setError('');
+  };
+
+  // Handler quick fill untuk testing role admin/user
+  const handleQuickFill = (role: 'admin' | 'user') => {
+    setIsLogin(true);
+    if (role === 'admin') {
+      setFormData({
+        name: '',
+        email: 'admin@kissaten.jp',
+        password: 'adminpassword123',
+        confirmPassword: ''
+      });
+    } else {
+      setFormData({
+        name: '',
+        email: 'user@kissaten.jp',
+        password: 'userpassword123',
+        confirmPassword: ''
+      });
+    }
     if (error) setError('');
   };
 
@@ -71,9 +93,6 @@ export default function Login() {
         {/* Header */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-amber-gold/20 flex items-center justify-center text-amber-gold">
-              <Coffee className="w-7 h-7" />
-            </div>
             <span className="font-bold text-xl tracking-wider text-coffee-brown dark:text-cream-main font-poppins">
               NEKO KISSATEN
             </span>
@@ -92,6 +111,38 @@ export default function Login() {
             <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm mb-6" role="alert">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* Quick Demo Login Buttons (Only shown in Login mode) */}
+          {isLogin && (
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2 text-coffee-brown/60 dark:text-warm-sand/60 text-center">
+                Quick Demo Access
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('admin')}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-amber-gold/40 bg-amber-gold/10 hover:bg-amber-gold/20 text-coffee-brown dark:text-cream-main text-xs font-semibold transition-all"
+                >
+                  <ShieldCheck className="w-4 h-4 text-amber-gold" />
+                  <span>As Admin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('user')}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-cream-main/30 dark:bg-dark-slate/60 hover:bg-cream-main/60 text-coffee-brown dark:text-cream-main text-xs font-semibold transition-all"
+                >
+                  <UserCheck className="w-4 h-4 text-coffee-brown/70 dark:text-warm-sand/70" />
+                  <span>As User</span>
+                </button>
+              </div>
+              <div className="relative flex py-3 items-center">
+                <div className="flex-grow border-t border-warm-sand/30 dark:border-dark-slate/60"></div>
+                <span className="flex-shrink mx-3 text-[10px] uppercase tracking-widest text-coffee-brown/40 dark:text-warm-sand/40">or continue manually</span>
+                <div className="flex-grow border-t border-warm-sand/30 dark:border-dark-slate/60"></div>
+              </div>
             </div>
           )}
 
