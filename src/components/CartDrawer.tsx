@@ -335,42 +335,24 @@ const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
                         className="w-full px-4 py-2.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/50 text-coffee-brown dark:text-cream-main focus:outline-none focus:border-amber-gold"
                       />
                     </div>
-
                     <div>
-                      <label className="block text-xs font-semibold mb-1 uppercase tracking-wider">Phone / WhatsApp</label>
-                      <input
-                        type="tel"
-                        placeholder="+62 812-xxxx-xxxx"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/50 text-coffee-brown dark:text-cream-main focus:outline-none focus:border-amber-gold"
-                      />
+                        <label className="block text-xs font-semibold mb-1 uppercase tracking-wider">Payment Method</label>
+                        <div className="flex items-start gap-2.5 p-3.5 rounded-xl border border-amber-gold/30 bg-amber-gold/10 dark:bg-amber-gold/5">
+                          <ShieldCheck className="w-4 h-4 text-amber-gold flex-shrink-0 mt-0.5" />
+                          <p className="text-[11px] sm:text-xs text-coffee-brown/80 dark:text-warm-sand/80 leading-relaxed">
+                            After you tap Pay, you'll be taken into the Midtrans Snap simulation window to complete this payment (sandbox mode — no real transaction).
+                          </p>
+                        </div>
                     </div>
-
                     <div>
-                      <label className="block text-xs font-semibold mb-1 uppercase tracking-wider">Table / Delivery Note</label>
-                      <input
-                        type="text"
-                        placeholder="Table No. or Street Address"
-                        value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/50 text-coffee-brown dark:text-cream-main focus:outline-none focus:border-amber-gold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold mb-1 uppercase tracking-wider">Payment Method (Midtrans Mock Snap)</label>
-                      <select
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/50 text-coffee-brown dark:text-cream-main focus:outline-none focus:border-amber-gold cursor-pointer"
+                      <button
+                        type="button"
+                        onClick={() => window.open('https://simulator.sandbox.midtrans.com/', '_blank', 'noopener,noreferrer')}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-gold/40 text-amber-gold text-xs font-semibold uppercase tracking-wider hover:bg-amber-gold/10 transition"
                       >
-                        <option value="QRIS / GoPay">QRIS / GoPay (Instant Scan)</option>
-                        <option value="BCA Virtual Account">BCA Virtual Account</option>
-                        <option value="Mandiri Bill">Mandiri Bill Payment</option>
-                        <option value="Credit Card (Visa/Mastercard)">Credit Card (Visa/Mastercard)</option>
-                        <option value="Cash at Kissaten Counter">Cash at Kissaten Counter</option>
-                      </select>
+                        {/* <ExternalLink className="w-3.5 h-3.5" /> */}
+                        <span>Open Midtrans Sandbox Simulator</span>
+                      </button>
                     </div>
                   </div>
 
@@ -430,10 +412,6 @@ const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
                     <div className="flex justify-between border-b border-warm-sand/20 dark:border-dark-slate/60 pb-2">
                       <span className="text-coffee-brown/70 dark:text-warm-sand/70">Guest</span>
                       <span className="font-semibold">{lastOrderDetails.customerName}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-warm-sand/20 dark:border-dark-slate/60 pb-2">
-                      <span className="text-coffee-brown/70 dark:text-warm-sand/70">Location / Note</span>
-                      <span className="font-semibold">{lastOrderDetails.customerAddress}</span>
                     </div>
                     <div className="flex justify-between border-b border-warm-sand/20 dark:border-dark-slate/60 pb-2">
                       <span className="text-coffee-brown/70 dark:text-warm-sand/70">Payment</span>

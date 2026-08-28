@@ -149,14 +149,6 @@ export default function Navbar() {
                         {user?.role}
                       </span>
                     </div>
-                    <NavLink
-                      to="/account"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-coffee-brown dark:text-cream-main hover:bg-warm-sand/20 dark:hover:bg-dark-slate/60"
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span>Account Settings</span>
-                    </NavLink>
                     {user?.role === 'ADMIN' && (
                       <NavLink
                         to="/admin"
