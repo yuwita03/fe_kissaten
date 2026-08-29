@@ -1,5 +1,5 @@
 import React from 'react';
-import { Coffee, Plus, Check } from 'lucide-react';
+import { Coffee, Plus} from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
 import { formatIDR } from '../utils/formatters';
 
@@ -39,13 +39,14 @@ export default function ProductCard({ product }: ProductCardProps) {
     >
       {/* Image container */}
       <div className="relative aspect-4/3 w-full overflow-hidden bg-warm-sand/20">
-        <img
-          src={product.image || 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop'}
-          alt={product.name}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
+          <img
+            src={product.image || 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800&auto=format&fit=crop'}
+            alt={product.name}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+          />
 
         {/* Category Chip */}
         <div className="absolute top-3 left-3">

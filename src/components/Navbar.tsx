@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Coffee, Cat, ShoppingBag, Sun, Moon, Menu as MenuIcon, X, User, LogIn, LogOut, Settings, Shield } from 'lucide-react';
+import { ShoppingBag, Sun, Moon, Menu as MenuIcon, X, User, LogIn, LogOut, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useCartStore } from '../store/cartStore';
 import useAuthStore from '../store/authStore';

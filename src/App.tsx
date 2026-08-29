@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import useAuthStore from './store/authStore';
@@ -8,12 +8,13 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 
 import Home from './pages/Home';
-import Menu from './pages/Menu';
-import Story from './pages/Story';
-import Contact from './pages/Contact';
-import Admin from './pages/Admin';
-import Login from './pages/Login';
-import OrderHistory from './pages/History';
+
+const Menu = lazy(() => import('./pages/Menu'));
+const Story = lazy(() => import('./pages/Story'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Login = lazy(() => import('./pages/Login'));
+const OrderHistory = lazy(() => import('./pages/History'));
 
 function RootLayout() {
   return (
@@ -22,7 +23,9 @@ function RootLayout() {
       <Navbar />
       <CartDrawer />
       <main className="flex-grow">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
       <Footer />
     </div>
@@ -32,7 +35,17 @@ function RootLayout() {
 function AuthLayout() {
   return (
     <div className="min-h-screen">
-      <Outlet />
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
+    </div>
+  );
+}
+
+function PageLoader() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-amber-gold border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

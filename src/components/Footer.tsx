@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Coffee, Cat, Instagram, MessageCircle, ShoppingBag, Heart, MapPin, Clock } from 'lucide-react';
+import { Instagram, MessageCircle, ShoppingBag, Clock } from 'lucide-react';
 
 export default function Footer() {
   return (

@@ -19,17 +19,6 @@ export default function Menu() {
     setPage(1);
   }, [searchQuery, selectedCategoryId]);
 
-    useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchProducts({
-        categoryId: selectedCategoryId || undefined,
-        search: searchQuery || undefined,
-        page,
-        limit,
-      });
-    }, 400);
-    return () => clearTimeout(delay);
-  }, [searchQuery, selectedCategoryId, page, fetchProducts]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 

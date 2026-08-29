@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Coffee, Heart, Sparkles, Feather, Compass, Flame, Droplets, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function Story() {
   const steps = [

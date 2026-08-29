@@ -1,6 +1,6 @@
   import React, { useState, useEffect } from 'react';
   import { Link } from 'react-router-dom';
-  import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, CheckCircle2, ShieldCheck, QrCode, Loader2, AlertCircle } from 'lucide-react';
+  import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, CheckCircle2, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
   import { useCartStore } from '../store/cartStore';
   import { useOrderStore } from '../store/orderStore';
   import useAuthStore from '../store/authStore';

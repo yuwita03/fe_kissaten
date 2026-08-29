@@ -1,40 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDown, Coffee, Sparkles } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { ArrowDown, Coffee } from 'lucide-react';
 
 export default function VideoHero() {
-  const { theme } = useTheme();
-  const videoUrl = "https://res.cloudinary.com/dajkiwbqz/video/upload/v1786364490/Black_cat_on_ledge_202608101919_ibj8uj.mp4";
+  const videoUrl = "https://res.cloudinary.com/dajkiwbqz/video/upload/q_70,w_1920,c_limit,vc_h264/v1786364490/Black_cat_on_ledge_202608101919_ibj8uj.mp4";
 
   return (
     <section id="hero-section" className="relative w-full h-screen min-h-[640px] flex items-center justify-center overflow-hidden">
-      {/* Dual Video Setup with Opacity Crossfade CSS */}
+      {/* Single Video Element */}
       <div className="absolute inset-0 w-full h-full bg-dark-roasted overflow-hidden">
-        {/* Light Video element */}
         <video
-          id="hero-video-light"
+          id="hero-video"
           src={videoUrl}
+          poster="https://res.cloudinary.com/dajkiwbqz/video/upload/so_2,w_1920,c_limit/v1786364490/Black_cat_on_ledge_202608101919_ibj8uj.jpg"
+          preload="metadata"
           autoPlay
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-            theme === 'light' ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        />
-
-        {/* Dark Video element */}
-        <video
-          id="hero-video-dark"
-          src={videoUrl}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
-            theme === 'dark' ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
+          className="absolute inset-0 w-full h-full object-cover"
         />
       </div>
 
@@ -46,22 +30,18 @@ export default function VideoHero() {
 
       {/* Content Overlay */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center md:text-left flex flex-col items-center md:items-start justify-end pb-24 md:pb-32 h-full">
-        {/* Tagline */}
-
-
         {/* Main Title */}
-      <div>
+        <div>
           <h1
             id="hero-title"
             className="text-4xl sm:justify-center sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-tight max-w-3xl drop-shadow-md font-poppins"
           >
             NEKO KISSATEN{" "}
-
           </h1>
-            <h2 className=" text-amber-gold text-3xl sm:text-5xl lg:text-6xl font-light">
-              (猫喫茶)
-            </h2>
-      </div>
+          <h2 className=" text-amber-gold text-3xl sm:text-5xl lg:text-6xl font-light">
+            (猫喫茶)
+          </h2>
+        </div>
 
         {/* Subtitle */}
         <p
