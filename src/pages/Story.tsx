@@ -51,7 +51,7 @@ export default function Story() {
 
         {/* Atmosphere Quote Section */}
         <div className="p-8 md:p-12 rounded-3xl bg-amber-gold/10 dark:bg-dark-slate/40 border border-amber-gold/25 relative overflow-hidden text-center max-w-4xl mx-auto">
-          <div className="text-amber-gold text-4xl font-serif">“</div>
+          <div className="text-amber-gold text-4xl font-serif">"</div>
           <blockquote className="text-lg md:text-xl font-light italic text-coffee-brown dark:text-cream-main max-w-2xl mx-auto leading-relaxed">
             A cup of specialty coffee is not merely a beverage; it is a peaceful pause in a noisy world. When you listen to the drip and the soft purr of our resident feline, you are home.
           </blockquote>
@@ -73,7 +73,6 @@ export default function Story() {
 
           <div className="space-y-8">
             {steps.map((step, idx) => {
-              const Icon = step.icon;
               return (
                 <div
                   key={step.number}

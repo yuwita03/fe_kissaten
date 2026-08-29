@@ -1,10 +1,11 @@
-  import React, { useState } from 'react';
+  import React, { useState, useEffect } from 'react';
   import { Link } from 'react-router-dom';
   import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, CheckCircle2, ShieldCheck, QrCode, Loader2, AlertCircle } from 'lucide-react';
   import { useCartStore } from '../store/cartStore';
   import { useOrderStore } from '../store/orderStore';
   import useAuthStore from '../store/authStore';
   import { formatIDR } from '../utils/formatters';
+  
 
   interface OrderDetails {
     id: number;
@@ -32,7 +33,7 @@
 
     // Checkout modal states
     const [isCheckingOut, setIsCheckingOut] = useState(false);
-    const [paymentStep, setPaymentStep] = useState('FORM'); // 'FORM' | 'SNAP_PROCESSING' | 'SUCCESS'
+    const [paymentStep, setPaymentStep] = useState('FORM'); // 'FORM' | 'SNAP_PROCESSING' | 'SUCCESS' | 'PENDING' | 'CANCELLED'
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
     const [customerAddress, setCustomerAddress] = useState('Table 07 (Dine-in / Kissaten Bar)');
@@ -51,73 +52,77 @@
       setCheckoutError('');
     };
 
-const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setCheckoutError('');
+    const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setCheckoutError('');
 
-  if (!customerName) {
-    setCheckoutError('Please enter your name');
-    return;
-  }
+      if (!customerName) {
+        setCheckoutError('Please enter your name');
+        return;
+      }
 
-  setIsProcessing(true);
-  setPaymentStep('SNAP_PROCESSING');
+      setIsProcessing(true);
+      setPaymentStep('SNAP_PROCESSING');
 
-  try {
-    const orderData = {
-      customerName: customerName || 'Valued Guest',
-      userId: isAuthenticated ? user?.id : undefined,
-      items: cartItems.map(item => ({
-        productId: Number(item.id),
-        qty: item.quantity
-      }))
-    };
+      try {
+        const orderData = {
+          customerName: customerName || 'Valued Guest',
+          userId: isAuthenticated ? user?.id : undefined,
+          items: cartItems.map(item => ({
+            productId: Number(item.id),
+            qty: item.quantity
+          }))
+        };
 
-    const savedOrder = await createOrder(orderData);
+        const savedOrder = await createOrder(orderData);
 
-    if (!savedOrder.snapToken) {
-      setCheckoutError('Failed to get payment token');
-      setPaymentStep('FORM');
-      setIsProcessing(false);
-      return;
-    }
+        if (!savedOrder.snapToken) {
+          setCheckoutError('Failed to get payment token');
+          setPaymentStep('FORM');
+          setIsProcessing(false);
+          return;
+        }
 
-    window.snap.pay(savedOrder.snapToken, {
-      onSuccess: () => {
-        setLastOrderDetails({
-          id: savedOrder.id,
-          customerName: savedOrder.customerName || 'Guest',
-          customerAddress: customerAddress,
-          paymentMethod: paymentMethod,
-          totalPrice: savedOrder.totalAmount,
-          items: savedOrder.items
-        });
         clearCart();
-        setPaymentStep('SUCCESS');
-        setIsProcessing(false);
-      },
-      onPending: () => {
-        setCheckoutError('Payment is pending, please complete it.');
-        setPaymentStep('FORM');
-        setIsProcessing(false);
-      },
-      onError: () => {
-        setCheckoutError('Payment failed, please try again.');
-        setPaymentStep('FORM');
-        setIsProcessing(false);
-      },
-      onClose: () => {
-        setCheckoutError('Payment popup closed before completing.');
+
+        window.snap.pay(savedOrder.snapToken, {
+          onSuccess: () => {
+            setLastOrderDetails({
+              id: savedOrder.id,
+              customerName: savedOrder.customerName || 'Guest',
+              customerAddress: customerAddress,
+              paymentMethod: paymentMethod,
+              totalPrice: savedOrder.totalAmount,
+              items: savedOrder.items
+            });
+            setPaymentStep('SUCCESS');
+            setIsProcessing(false);
+          },
+          onPending: () => {
+            setCheckoutError('Payment is pending. Please complete the payment to confirm your order.');
+            clearCart();
+            setPaymentStep('PENDING');
+            setIsProcessing(false);
+          },
+          onError: () => {
+            setCheckoutError('Payment failed, please try again.');
+            clearCart();
+            setPaymentStep('FORM');
+            setIsProcessing(false);
+          },
+          onClose: () => {
+            setCheckoutError('Payment cancelled. You can try again anytime.');
+            clearCart();
+            setPaymentStep('CANCELLED');
+            setIsProcessing(false);
+          }
+        });
+      } catch (err) {
+        setCheckoutError(err instanceof Error ? err.message : 'Failed to process order');
         setPaymentStep('FORM');
         setIsProcessing(false);
       }
-    });
-  } catch (err) {
-    setCheckoutError(err instanceof Error ? err.message : 'Failed to process order');
-    setPaymentStep('FORM');
-    setIsProcessing(false);
-  }
-};
+    };
 
     const handleCloseAll = () => {
       setIsCheckingOut(false);
@@ -126,6 +131,11 @@ const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
       setCheckoutError('');
     };
 
+    useEffect(() => {
+      if (isAuthenticated && user?.name) {
+        setCustomerName(user.name);
+      }
+    }, [isAuthenticated, user]);
     if (!isCartOpen) return null;
 
     return (
@@ -323,9 +333,14 @@ const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
                     </div>
                   )}
 
-                  <div className="space-y-3 text-xs sm:text-sm">
-                    <div>
-                      <label className="block text-xs font-semibold mb-1 uppercase tracking-wider">Your Name *</label>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 uppercase tracking-wider">Your Name *</label>
+                    {isAuthenticated ? (
+                      <div className="w-full px-4 py-2.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-warm-sand/10 dark:bg-dark-slate/30 text-coffee-brown dark:text-cream-main text-sm flex items-center justify-between">
+                        <span>{customerName}</span>
+                        <span className="text-[10px] text-sage-green font-semibold uppercase">Logged in</span>
+                      </div>
+                    ) : (
                       <input
                         type="text"
                         required
@@ -334,26 +349,7 @@ const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
                         onChange={(e) => setCustomerName(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-warm-sand/40 dark:border-dark-slate/60 bg-white dark:bg-dark-slate/50 text-coffee-brown dark:text-cream-main focus:outline-none focus:border-amber-gold"
                       />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold mb-1 uppercase tracking-wider">Payment Method</label>
-                        <div className="flex items-start gap-2.5 p-3.5 rounded-xl border border-amber-gold/30 bg-amber-gold/10 dark:bg-amber-gold/5">
-                          <ShieldCheck className="w-4 h-4 text-amber-gold flex-shrink-0 mt-0.5" />
-                          <p className="text-[11px] sm:text-xs text-coffee-brown/80 dark:text-warm-sand/80 leading-relaxed">
-                            After you tap Pay, you'll be taken into the Midtrans Snap simulation window to complete this payment (sandbox mode — no real transaction).
-                          </p>
-                        </div>
-                    </div>
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => window.open('https://simulator.sandbox.midtrans.com/', '_blank', 'noopener,noreferrer')}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-gold/40 text-amber-gold text-xs font-semibold uppercase tracking-wider hover:bg-amber-gold/10 transition"
-                      >
-                        {/* <ExternalLink className="w-3.5 h-3.5" /> */}
-                        <span>Open Midtrans Sandbox Simulator</span>
-                      </button>
-                    </div>
+                    )}
                   </div>
 
                   <div className="pt-2 flex gap-3">
@@ -385,6 +381,66 @@ const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
                     <p className="text-xs text-coffee-brown/70 dark:text-warm-sand/70">
                       Executing Midtrans Snap transaction for {formatIDR(finalTotal)}
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {paymentStep === 'PENDING' && (
+                <div className="text-center space-y-4 py-2">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-amber-gold/20 text-amber-gold flex items-center justify-center border-2 border-amber-gold/40 animate-in zoom-in">
+                    <Loader2 className="w-10 h-10 animate-spin" />
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-gold/20 text-amber-gold tracking-wide">
+                      PAYMENT PENDING
+                    </span>
+                    <h3 className="text-xl font-bold mt-2 font-poppins text-coffee-brown dark:text-cream-main">
+                      Payment pending confirmation
+                    </h3>
+                    <p className="text-xs text-coffee-brown/70 dark:text-warm-sand/70 mt-1">
+                      Your order is being processed. Please complete the payment to confirm it.
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      onClick={handleCloseAll}
+                      id="pending-order-btn"
+                      className="w-full py-3 rounded-xl bg-amber-gold text-dark-roasted font-bold text-xs sm:text-sm tracking-wider uppercase hover:bg-amber-gold/90 transition shadow-md cursor-pointer"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {paymentStep === 'CANCELLED' && (
+                <div className="text-center space-y-4 py-2">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-amber-gold/20 text-amber-gold flex items-center justify-center border-2 border-amber-gold/40 animate-in zoom-in">
+                    <AlertCircle className="w-10 h-10" />
+                  </div>
+
+                  <div>
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-gold/20 text-amber-gold tracking-wide">
+                      PAYMENT CANCELLED
+                    </span>
+                    <h3 className="text-xl font-bold mt-2 font-poppins text-coffee-brown dark:text-cream-main">
+                      Payment was cancelled
+                    </h3>
+                    <p className="text-xs text-coffee-brown/70 dark:text-warm-sand/70 mt-1">
+                      Your cart has been cleared. You can place the order again when you are ready.
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      onClick={handleCloseAll}
+                      id="cancelled-order-btn"
+                      className="w-full py-3 rounded-xl bg-amber-gold text-dark-roasted font-bold text-xs sm:text-sm tracking-wider uppercase hover:bg-amber-gold/90 transition shadow-md cursor-pointer"
+                    >
+                      Close
+                    </button>
                   </div>
                 </div>
               )}

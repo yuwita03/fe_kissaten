@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { userService, UserResponse } from '../service/user.service';
+import { useCartStore } from './cartStore';
 
 interface AuthState {
   user: UserResponse | null;
@@ -32,6 +33,8 @@ const useAuthStore = create<AuthState>((set) => ({
         const currentUser = await userService.getCurrentUser();
         localStorage.setItem('user', JSON.stringify(currentUser));
         set({ user: currentUser, isAuthenticated: true });
+
+        await useCartStore.getState().fetchCartFromServer();
       } catch (error) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
@@ -48,6 +51,7 @@ const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('user', JSON.stringify(response.user));
       set({ user: response.user, isAuthenticated: true, isLoading: false });
+      await useCartStore.getState().fetchCartFromServer();
     } catch (err: any) {
       set({
         error: err?.response?.data?.message || 'Email atau password salah',
@@ -64,6 +68,7 @@ const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('user', JSON.stringify(response.user));
       set({ user: response.user, isAuthenticated: true, isLoading: false });
+      await useCartStore.getState().fetchCartFromServer();
     } catch (err: any) {
       set({
         error: err?.response?.data?.message || 'Registrasi gagal',
@@ -76,6 +81,7 @@ const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
+    useCartStore.setState({ cartItems: [] });
     set({ user: null, isAuthenticated: false });
   },
 

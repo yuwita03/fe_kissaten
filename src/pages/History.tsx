@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ReceiptText, RefreshCw, Loader2, ShoppingBag, ArrowRight, ChevronDown } from 'lucide-react';
+import { ReceiptText, RefreshCw, Loader2, ShoppingBag, ArrowRight, ChevronDown, CreditCard } from 'lucide-react';
 import { useOrderStore } from '../store/orderStore';
 import useAuthStore from '../store/authStore';
 import { formatIDR, formatDate } from '../utils/formatters';
@@ -16,6 +16,7 @@ export default function OrderHistory() {
   const { myOrders, isLoading, error, page, limit, total, fetchMyOrders, setPage } = useOrderStore();
   const { isAuthenticated } = useAuthStore();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [payingId, setPayingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -25,6 +26,29 @@ export default function OrderHistory() {
 
   const toggleExpanded = (orderId: number) => {
     setExpandedId((prev) => (prev === orderId ? null : orderId));
+  };
+
+  const handlePayNow = (snapToken: string | null, orderId: number) => {
+    if (!snapToken) return;
+
+    setPayingId(orderId);
+
+    window.snap.pay(snapToken, {
+      onSuccess: () => {
+        setPayingId(null);
+        fetchMyOrders(page, limit);
+      },
+      onPending: () => {
+        setPayingId(null);
+        fetchMyOrders(page, limit);
+      },
+      onError: () => {
+        setPayingId(null);
+      },
+      onClose: () => {
+        setPayingId(null);
+      },
+    });
   };
 
   if (!isAuthenticated) {
@@ -108,6 +132,9 @@ export default function OrderHistory() {
           <div className="space-y-4">
             {myOrders.map((order) => {
               const isExpanded = expandedId === order.id;
+              const isPending = order.paymentStatus === 'PENDING';
+              const isPayingThis = payingId === order.id;
+
               return (
                 <div
                   key={order.id}
@@ -159,6 +186,22 @@ export default function OrderHistory() {
                           </li>
                         ))}
                       </ul>
+
+                      {isPending && order.snapToken && (
+                        <button
+                          type="button"
+                          onClick={() => handlePayNow(order.snapToken, order.id)}
+                          disabled={isPayingThis}
+                          className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-gold text-dark-roasted font-bold text-xs uppercase tracking-wider hover:bg-amber-gold/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isPayingThis ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CreditCard className="w-4 h-4" />
+                          )}
+                          <span>{isPayingThis ? 'Processing...' : 'Bayar Sekarang'}</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
