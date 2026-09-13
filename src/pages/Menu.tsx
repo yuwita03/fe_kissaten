@@ -17,21 +17,22 @@ export default function Menu() {
 
     useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategoryId]);
-
+  }, [searchQuery, selectedCategoryId, setPage]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  // fetch products ke server tiap search/category berubah, di-debounce 400ms
+  // fetch products ke server tiap search/category/page berubah, di-debounce 400ms
   useEffect(() => {
     const delay = setTimeout(() => {
       fetchProducts({
         categoryId: selectedCategoryId || undefined,
         search: searchQuery || undefined,
+        page,
+        limit,
       });
     }, 400);
     return () => clearTimeout(delay);
-  }, [searchQuery, selectedCategoryId, fetchProducts]);
+  }, [searchQuery, selectedCategoryId, page, limit, fetchProducts]);
 
   if (isLoading && products.length === 0) {
     return (

@@ -23,7 +23,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   error: null,
   total: 0,
   page: 1,
-  limit: 10,
+  limit: 9,
 
   fetchProducts: async (params) => {
     set({ isLoading: true, error: null });
@@ -73,7 +73,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
-  setPage: (page) => set({ page }),
+  setPage: (page) => set((state) => ({ page: Math.max(1, page), limit: state.limit })),
   setLimit: (limit) => set({ limit, page: 1 }),
   clearError: () => set({ error: null }),
 }));
