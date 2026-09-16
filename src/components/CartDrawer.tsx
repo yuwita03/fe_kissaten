@@ -52,77 +52,81 @@
       setCheckoutError('');
     };
 
-    const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setCheckoutError('');
+const handleProcessPayment = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setCheckoutError('');
 
-      if (!customerName) {
-        setCheckoutError('Please enter your name');
-        return;
-      }
+  if (!customerName) {
+    setCheckoutError('Please enter your name');
+    return;
+  }
 
-      setIsProcessing(true);
-      setPaymentStep('SNAP_PROCESSING');
+  setIsProcessing(true);
+  setPaymentStep('SNAP_PROCESSING');
 
-      try {
-        const orderData = {
-          customerName: customerName || 'Valued Guest',
-          userId: isAuthenticated ? user?.id : undefined,
-          items: cartItems.map(item => ({
-            productId: Number(item.id),
-            qty: item.quantity
-          }))
-        };
+  try {
+    const orderData = {
+      customerName: customerName || 'Valued Guest',
+      userId: isAuthenticated ? user?.id : undefined,
+      items: cartItems.map(item => ({
+        productId: Number(item.id),
+        qty: item.quantity
+      }))
+    };
 
-        const savedOrder = await createOrder(orderData);
+    // 1. Panggil API ke backend
+    const savedOrder = await createOrder(orderData);
 
-        if (!savedOrder.snapToken) {
-          setCheckoutError('Failed to get payment token');
-          setPaymentStep('FORM');
-          setIsProcessing(false);
-          return;
-        }
+    if (!savedOrder?.snapToken) {
+      setCheckoutError('Failed to get payment token');
+      setPaymentStep('FORM');
+      setIsProcessing(false);
+      return;
+    }
 
-        clearCart();
+    // 🛑 JANGAN PANGGIL clearCart() DI SINI!
 
-        window.snap.pay(savedOrder.snapToken, {
-          onSuccess: () => {
-            setLastOrderDetails({
-              id: savedOrder.id,
-              customerName: savedOrder.customerName || 'Guest',
-              customerAddress: customerAddress,
-              paymentMethod: paymentMethod,
-              totalPrice: savedOrder.totalAmount,
-              items: savedOrder.items
-            });
-            setPaymentStep('SUCCESS');
-            setIsProcessing(false);
-          },
-          onPending: () => {
-            setCheckoutError('Payment is pending. Please complete the payment to confirm your order.');
-            clearCart();
-            setPaymentStep('PENDING');
-            setIsProcessing(false);
-          },
-          onError: () => {
-            setCheckoutError('Payment failed, please try again.');
-            clearCart();
-            setPaymentStep('FORM');
-            setIsProcessing(false);
-          },
-          onClose: () => {
-            setCheckoutError('Payment cancelled. You can try again anytime.');
-            clearCart();
-            setPaymentStep('CANCELLED');
-            setIsProcessing(false);
-          }
+    // 2. Buka Pop-up Midtrans Snap
+    window.snap.pay(savedOrder.snapToken, {
+      onSuccess: (result: unknown) => {
+        console.log("Midtrans Success:", result);
+        clearCart(); // ✅ Baru clear cart kalau sukses
+        setLastOrderDetails({
+          id: savedOrder.id,
+          customerName: savedOrder.customerName || 'Guest',
+          customerAddress: customerAddress,
+          paymentMethod: paymentMethod,
+          totalPrice: savedOrder.totalAmount,
+          items: savedOrder.items
         });
-      } catch (err) {
-        setCheckoutError(err instanceof Error ? err.message : 'Failed to process order');
+        setPaymentStep('SUCCESS');
+        setIsProcessing(false);
+      },
+      onPending: (result: unknown) => {
+        console.log("Midtrans Pending:", result);
+        clearCart();
+        setCheckoutError('Payment is pending. Please complete the payment to confirm your order.');
+        setPaymentStep('PENDING');
+        setIsProcessing(false);
+      },
+      onError: (err: unknown) => {
+        console.error("Midtrans Error:", err);
+        setCheckoutError('Payment failed, please try again.');
         setPaymentStep('FORM');
         setIsProcessing(false);
+      },
+      onClose: () => {
+        setCheckoutError('Payment cancelled. You can try again anytime.');
+        setPaymentStep('CANCELLED');
+        setIsProcessing(false);
       }
-    };
+    });
+  } catch (err) {
+    setCheckoutError(err instanceof Error ? err.message : 'Failed to process order');
+    setPaymentStep('FORM');
+    setIsProcessing(false);
+  }
+};
 
     const handleCloseAll = () => {
       setIsCheckingOut(false);

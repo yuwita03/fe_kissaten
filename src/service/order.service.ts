@@ -49,6 +49,11 @@ export const orderService = {
     return response.data;
   },
 
+  createPaymentToken: async (id: number): Promise<{ snapToken: string }> => {
+    const response = await api.post(`/orders/${id}/payment`);
+    return response.data;
+  },
+
   getMyOrders: async (page = 1, limit = 10): Promise<OrderListResponse> => {
     const response = await api.get('/orders/my', { params: { page, limit } });
     return response.data;
